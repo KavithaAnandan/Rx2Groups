@@ -15,7 +15,8 @@
  */
 package com.airbnb.rxgroups;
 
-import rx.Observer;
+
+import io.reactivex.Observer;
 
 public interface ResubscriptionObserver<T> extends Observer<T> {
   Object resubscriptionTag();

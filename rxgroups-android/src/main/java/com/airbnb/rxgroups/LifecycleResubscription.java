@@ -24,11 +24,10 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import rx.Observable;
-import rx.Observer;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.schedulers.Schedulers;
+
 
 class LifecycleResubscription {
   /**

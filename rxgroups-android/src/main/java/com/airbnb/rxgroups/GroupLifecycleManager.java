@@ -21,16 +21,15 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import org.reactivestreams.Subscription;
+
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.subscriptions.CompositeSubscription;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+
 
 /**
  * TODO

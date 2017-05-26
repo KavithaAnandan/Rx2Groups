@@ -20,8 +20,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import io.reactivex.Observer;
+
 /**
- * Used on {@link rx.Observer} fields to indicate that they should be automatically subscribed to a
+ * Used on {@link Observer} fields to indicate that they should be automatically subscribed to a
  * certain Observable, or multiple Observables if they still haven't completed yet.
  */
 @Retention(RetentionPolicy.RUNTIME)

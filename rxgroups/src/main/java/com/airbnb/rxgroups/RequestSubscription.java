@@ -15,8 +15,9 @@
  */
 package com.airbnb.rxgroups;
 
-import rx.Subscriber;
-import rx.Subscription;
+
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 public interface RequestSubscription extends Subscription {
   /**
