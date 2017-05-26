@@ -15,42 +15,116 @@
  */
 package com.airbnb.rxgroups;
 
-import rx.Emitter;
-import rx.Observable;
-import rx.Observer;
-import rx.functions.Action1;
+
+import com.sun.tools.javac.comp.Flow;
+
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Emitter;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.Observer;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.observers.ResourceObserver;
 
 /**
  * Transforms an existing {@link Observable} by returning a new {@link Observable} that is
  * automatically added to the provided {@link ObservableGroup} with the specified {@code tag} when
  * subscribed to.
  */
-class GroupSubscriptionTransformer<T> implements Observable.Transformer<T, T> {
-  private final ObservableGroup group;
-  private final String tag;
+class GroupSubscriptionTransformer<T> implements ObservableTransformer<T, T> {
+    private final ObservableGroup group;
+    private final String tag;
 
-  GroupSubscriptionTransformer(ObservableGroup group, String tag) {
-    this.group = group;
-    this.tag = tag;
-  }
+    GroupSubscriptionTransformer(ObservableGroup group, String tag) {
+        this.group = group;
+        this.tag = tag;
+    }
 
-  @Override public Observable<T> call(final Observable<T> observable) {
-    return Observable.fromEmitter(new Action1<Emitter<T>>() {
-      @Override public void call(final Emitter<T> emitter) {
-        group.add(tag, observable, new Observer<T>() {
-          @Override public void onCompleted() {
-            emitter.onCompleted();
-          }
+    @Override
+    public ObservableSource<T> apply(@NonNull final Observable<T> observable) {
 
-          @Override public void onError(Throwable e) {
-            emitter.onError(e);
-          }
+        return Observable.create(new ObservableOnSubscribe<T>() {
+            @Override
+            public void subscribe(@NonNull final ObservableEmitter<T> emitter) throws Exception {
+                group.add(tag, observable, new ResourceObserver<T>() {
+                    @Override
+                    public void onNext(@NonNull T t) {
+                        emitter.onNext(t);
+                    }
 
-          @Override public void onNext(T t) {
-            emitter.onNext(t);
-          }
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        emitter.onError(e);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        emitter.onComplete();
+                    }
+                });
+            }
         });
-      }
-    }, Emitter.BackpressureMode.BUFFER);
-  }
+
+
+//      return Observable.create(new ObservableOnSubscribe<T>() {
+//          @Override
+//          public void subscribe(@NonNull final ObservableEmitter<T> emitter) throws Exception {
+//              group.add(tag, observable, new Observer<T>() {
+//                  @Override
+//                  public void onSubscribe(@NonNull Disposable d) {
+//
+//                  }
+//
+//                  @Override
+//                  public void onNext(@NonNull T t) {
+//                      emitter.onNext(t);
+//                  }
+//
+//                  @Override
+//                  public void onError(@NonNull Throwable e) {
+//                      emitter.onError(e);
+//                  }
+//
+//                  @Override
+//                  public void onComplete() {
+//
+//                  }
+//              });
+//          }
+//      });
+
+        //Rx1 code
+//    return Observable.fromEmitter(new Action1<Emitter<T>>() {
+//      @Override public void call(final Emitter<T> emitter) {
+//        group.add(tag, observable, new Observer<T>() {
+//
+//          @Override public void onError(Throwable e) {
+//            emitter.onError(e);
+//          }
+//
+//          @Override
+//          public void onComplete() {
+//            emitter.onComplete();
+//          }
+//
+//          @Override
+//          public void onSubscribe(@NonNull Disposable d) {
+//
+//          }
+//
+//          @Override public void onNext(T t) {
+//            emitter.onNext(t);
+//          }
+//        });
+//      }
+//    }, BackpressureStrategy.BUFFER);
+    }
 }

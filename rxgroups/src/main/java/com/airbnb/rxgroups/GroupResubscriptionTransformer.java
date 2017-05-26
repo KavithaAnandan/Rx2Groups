@@ -15,12 +15,20 @@
  */
 package com.airbnb.rxgroups;
 
-import rx.Observable;
-import rx.Subscriber;
 
-class GroupResubscriptionTransformer<T> implements Observable.Transformer<T, T> {
+import org.reactivestreams.Subscriber;
+
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.annotations.NonNull;
+
+class GroupResubscriptionTransformer<T> implements ObservableTransformer<T, T> {
   private final ObservableGroup group;
   private final ManagedObservable<T> managedObservable;
+
 
   GroupResubscriptionTransformer(
       ObservableGroup group, ManagedObservable<T> managedObservable) {
@@ -28,11 +36,21 @@ class GroupResubscriptionTransformer<T> implements Observable.Transformer<T, T> 
     this.managedObservable = managedObservable;
   }
 
-  @Override public Observable<T> call(final Observable<T> observable) {
-    return Observable.<T>create(new Observable.OnSubscribe<T>() {
-      @Override public void call(Subscriber<? super T> subscriber) {
+  @Override
+  public ObservableSource<T> apply(@NonNull final Observable<T> observable) {
+    return Observable.<T>create(new ObservableOnSubscribe<T>() {
+      @Override
+      public void subscribe(@NonNull ObservableEmitter<T> e) throws Exception {
         group.resubscribe(managedObservable, observable, subscriber);
+
       }
     });
+
+
+//    return Observable.<T>create(new Observable.OnSubscribe<T>() {
+//      @Override public void call(Subscriber<? super T> subscriber) {
+//        group.resubscribe(managedObservable, observable, subscriber);
+//      }
+//    });
   }
 }
