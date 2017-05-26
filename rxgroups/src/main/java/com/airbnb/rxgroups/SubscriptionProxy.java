@@ -15,13 +15,16 @@
  */
 package com.airbnb.rxgroups;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Actions;
-import rx.subjects.ReplaySubject;
-import rx.subscriptions.CompositeSubscription;
+
+import org.reactivestreams.Subscription;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.observers.ResourceObserver;
+import io.reactivex.subjects.ReplaySubject;
 
 /**
  * This class is a middle man between an {@link Observable} and an {@link Observer}. Since Retrofit
@@ -33,56 +36,64 @@ import rx.subscriptions.CompositeSubscription;
  * events like Activity.onDestroy()
  */
 final class SubscriptionProxy<T> {
-  private final Observable<T> proxy;
-  private final Subscription upstreamSubscription;
-  private final CompositeSubscription subscriptionList;
-  private Subscription subscription;
+    private final Observable<T> proxy;
+    private final Subscription upstreamSubscription;
+    //private final CompositeSubscription subscriptionList;
+    private final CompositeDisposable disposableList;
+    //private Subscription subscription;
+    private Disposable disposable;
 
-  private SubscriptionProxy(Observable<T> upstreamObservable, Action0 onTerminate) {
-    ReplaySubject<T> replaySubject = ReplaySubject.create();
-    upstreamSubscription = upstreamObservable.subscribe(replaySubject);
-    proxy = replaySubject.doOnTerminate(onTerminate);
-    subscriptionList = new CompositeSubscription(upstreamSubscription);
-  }
 
-  static <T> SubscriptionProxy<T> create(Observable<T> observable, Action0 onTerminate) {
-    return new SubscriptionProxy<>(observable, onTerminate);
-  }
-
-  static <T> SubscriptionProxy<T> create(Observable<T> observable) {
-    return create(observable, Actions.empty());
-  }
-
-  Subscription subscribe(Observer<? super T> observer) {
-    return subscribe(proxy, observer);
-  }
-
-  Subscription subscribe(Observable<T> observable, Observer<? super T> observer) {
-    unsubscribe();
-    subscription = observable.subscribe(observer);
-    subscriptionList.add(subscription);
-    return subscription;
-  }
-
-  void cancel() {
-    subscriptionList.unsubscribe();
-  }
-
-  void unsubscribe() {
-    if (subscription != null) {
-      subscriptionList.remove(subscription);
+    private SubscriptionProxy(Observable<T> upstreamObservable, Action onTerminate) {
+        ReplaySubject<T> replaySubject = ReplaySubject.create();
+        upstreamSubscription = upstreamObservable.subscribe(replaySubject);
+        proxy = replaySubject.doOnTerminate(onTerminate);
+        disposableList = new CompositeDisposable();
     }
-  }
 
-  boolean isUnsubscribed() {
-    return subscription != null && subscription.isUnsubscribed();
-  }
+    static <T> SubscriptionProxy<T> create(Observable<T> observable, Action onTerminate) {
+        return new SubscriptionProxy<>(observable, onTerminate);
+    }
 
-  boolean isCancelled() {
-    return isUnsubscribed() && upstreamSubscription.isUnsubscribed();
-  }
+    static <T> SubscriptionProxy<T> create(Observable<T> observable) {
+        return create(observable, new Action() {
+            @Override
+            public void run() throws Exception {
 
-  Observable<T> observable() {
-    return proxy;
-  }
+            }
+        });
+    }
+
+    Disposable subscribe(ResourceObserver<? super T> observer) {
+        return subscribe(proxy, observer);
+    }
+
+    Disposable subscribe(Observable<T> observable, ResourceObserver<? super T> observer) {
+        unsubscribe();
+        disposable = observable.subscribeWith(observer);
+        disposableList.add(disposable);
+        return disposable;
+    }
+
+    void cancel() {
+        disposableList.dispose();
+    }
+
+    void unsubscribe() {
+        if (disposable != null) {
+            disposableList.remove(disposable);
+        }
+    }
+
+    boolean isUnsubscribed() {
+        return disposable != null && disposable.isDisposed();
+    }
+
+    boolean isCancelled() {
+        return isUnsubscribed() && upstreamSubscription.isUnsubscribed();
+    }
+
+    Observable<T> observable() {
+        return proxy;
+    }
 }
