@@ -15,13 +15,17 @@
  */
 package com.airbnb.rxgroups;
 
+import org.reactivestreams.Subscriber;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Subscriber;
-import rx.functions.Action0;
+import io.reactivex.Observable;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.Observer;
+import io.reactivex.functions.Action;
+import io.reactivex.observers.ResourceObserver;
+
 
 /**
  * A helper class for {@link ObservableManager} that groups {@link Observable}s to be managed
@@ -35,170 +39,176 @@ import rx.functions.Action0;
  * reattached to an observer without ambiguity.
  */
 public class ObservableGroup {
-  private final Map<String, ManagedObservable<?>> groupMap = new ConcurrentHashMap<>();
-  private final long groupId;
-  private boolean locked;
-  private boolean destroyed;
+    private final Map<String, ManagedObservable<?>> groupMap = new ConcurrentHashMap<>();
+    private final long groupId;
+    private boolean locked;
+    private boolean destroyed;
 
-  ObservableGroup(long groupId) {
-    this.groupId = groupId;
-  }
-
-  public long id() {
-    return groupId;
-  }
-
-  /**
-   * Adds an {@link Observable} and {@link Observer} to this group and subscribes to it. If an
-   * {@link Observable} with the same tag is already added, the previous one will be canceled and
-   * removed before adding and subscribing to the new one.
-   */
-  <T> void add(final String tag, Observable<T> observable, Observer<? super T> observer) {
-    checkNotDestroyed();
-
-    ManagedObservable<?> previousObservable = groupMap.get(tag);
-
-    if (previousObservable != null) {
-      cancelAndRemove(previousObservable);
+    ObservableGroup(long groupId) {
+        this.groupId = groupId;
     }
 
-    ManagedObservable<T> managedObservable =
-        new ManagedObservable<>(tag, observable, observer, new Action0() {
-          @Override public void call() {
-            groupMap.remove(tag);
-          }
-        });
-
-    groupMap.put(tag, managedObservable);
-
-    if (!locked) {
-      managedObservable.unlock();
+    public long id() {
+        return groupId;
     }
-  }
 
-  /**
-   * Transforms an existing {@link Observable} by returning a new {@link Observable} that is
-   * automatically added to this {@link ObservableGroup} with the provided {@code tag} when
-   * subscribed to.
-   */
-  public <T> Observable.Transformer<? super T, T> transform(String tag) {
-    return new GroupSubscriptionTransformer<>(this, tag);
-  }
+    /**
+     * Adds an {@link Observable} and {@link Observer} to this group and subscribes to it. If an
+     * {@link Observable} with the same tag is already added, the previous one will be canceled and
+     * removed before adding and subscribing to the new one.
+     */
+    <T> void add(final String tag, Observable<T> observable, ResourceObserver<? super T> observer) {
+        checkNotDestroyed();
 
-  /**
-   * Cancels all subscriptions and releases references to Observables and Observers. No more
-   * Observables can be added to this group after it has been destroyed and it becomes unusable.
-   */
-  void destroy() {
-    destroyed = true;
+        ManagedObservable<?> previousObservable = groupMap.get(tag);
 
-    for (ManagedObservable<?> managedObservable : groupMap.values()) {
-      managedObservable.cancel();
+        if (previousObservable != null) {
+            cancelAndRemove(previousObservable);
+        }
+
+        ManagedObservable<T> managedObservable =
+                new ManagedObservable<>(tag, observable, observer, new Action() {
+                    @Override
+                    public void run() throws Exception {
+                        groupMap.remove(tag);
+                    }
+                });
+
+        groupMap.put(tag, managedObservable);
+
+        if (!locked) {
+            managedObservable.unlock();
+        }
     }
-    groupMap.clear();
-  }
 
-  /**
-   * Locks (prevents) Observables added to this group from emitting new events. Observables added
-   * via {@link #transform(String tag)} while the group is locked will **not** be subscribed until
-   * their respective group is unlocked. If it's never unlocked, then the Observable will never be
-   * subscribed to at all. This does not clear references to existing Observers. Please use
-   * {@link #unsubscribe()} if you want to clear references to existing Observers.
-   */
-  public void lock() {
-    locked = true;
-    for (ManagedObservable<?> managedObservable : groupMap.values()) {
-      managedObservable.lock();
+    /**
+     * Transforms an existing {@link Observable} by returning a new {@link Observable} that is
+     * automatically added to this {@link ObservableGroup} with the provided {@code tag} when
+     * subscribed to.
+     */
+    public <T> ObservableTransformer<? super T, T> transform(String tag) {
+        return new GroupSubscriptionTransformer<>(this, tag);
     }
-  }
 
-  /**
-   * Unlocks (releases) Observables added to this group to emit new events until they are locked,
-   * unsubscribed or cancelled.
-   */
-  public void unlock() {
-    locked = false;
-    for (ManagedObservable<?> managedObservable : groupMap.values()) {
-      managedObservable.unlock();
+    /**
+     * Cancels all subscriptions and releases references to Observables and Observers. No more
+     * Observables can be added to this group after it has been destroyed and it becomes unusable.
+     */
+    void destroy() {
+        destroyed = true;
+
+        for (ManagedObservable<?> managedObservable : groupMap.values()) {
+            managedObservable.cancel();
+        }
+        groupMap.clear();
     }
-  }
 
-  /**
-   * Unsubscribes from all Observables managed by this group. Also clears any references to existing
-   * {@link Observer} objects in order to avoid leaks. This does not disconnect from the upstream
-   * Observable, so it can be resumed upon calling {@link #observable(String)} if needed.
-   */
-  public void unsubscribe() {
-    for (ManagedObservable<?> managedObservable : groupMap.values()) {
-      managedObservable.unsubscribe();
+    /**
+     * Locks (prevents) Observables added to this group from emitting new events. Observables added
+     * via {@link #transform(String tag)} while the group is locked will **not** be subscribed until
+     * their respective group is unlocked. If it's never unlocked, then the Observable will never be
+     * subscribed to at all. This does not clear references to existing Observers. Please use
+     * {@link #unsubscribe()} if you want to clear references to existing Observers.
+     */
+    public void lock() {
+        locked = true;
+        for (ManagedObservable<?> managedObservable : groupMap.values()) {
+            managedObservable.lock();
+        }
     }
-  }
 
-  /**
-   * Returns an existing {@link Observable} for the provided {@code tag}. Does not change the
-   * locked status of this {@link ObservableGroup}. If it is unlocked, and the Observable has
-   * already emitted events, they will be immediately delivered. If it is locked then no events
-   * will be delivered until it is unlocked.
-   */
-  public <T> Observable<T> observable(String tag) {
-    checkNotDestroyed();
-    //noinspection unchecked
-    ManagedObservable<T> managedObservable = (ManagedObservable<T>) groupMap.get(tag);
-    Observable<T> observable = managedObservable.observable();
-    return observable.compose(new GroupResubscriptionTransformer<>(this, managedObservable));
-  }
-
-  /**
-   * @return a {@link RequestSubscription} with which the {@link Observer} can unsubscribe
-   * from or cancel before the {@link Observable} has completed. If no {@link Observable} is found
-   * for the provided {@code tag}, {@code null} is returned instead.
-   */
-  public RequestSubscription subscription(String tag) {
-    return groupMap.get(tag);
-  }
-
-  <T> void resubscribe(ManagedObservable<T> managedObservable, Observable<T> observable,
-      Subscriber<? super T> subscriber) {
-    managedObservable.resubscribe(observable, subscriber);
-  }
-
-  /**
-   * Removes the supplied {@link Observable} from this group and cancels it subscription. No more
-   * events will be delivered to its subscriber. If no Observable is found for the provided tag,
-   * nothing happens.
-   */
-  public void cancelAndRemove(String tag) {
-    cancelAndRemove(groupMap.get(tag));
-  }
-
-  /**
-   * Removes the supplied {@link Observable} from this group and cancels it subscription. No more
-   * events will be delivered to its subscriber.
-   */
-  private void cancelAndRemove(ManagedObservable<?> managedObservable) {
-    if (managedObservable != null) {
-      managedObservable.cancel();
-      groupMap.remove(managedObservable.tag());
+    /**
+     * Unlocks (releases) Observables added to this group to emit new events until they are locked,
+     * unsubscribed or cancelled.
+     */
+    public void unlock() {
+        locked = false;
+        for (ManagedObservable<?> managedObservable : groupMap.values()) {
+            managedObservable.unlock();
+        }
     }
-  }
 
-  /** Returns whether an {@link Observable} exists for the provided {@code tag} */
-  public boolean hasObservable(String tag) {
-    ManagedObservable<?> managedObservable = groupMap.get(tag);
-    return managedObservable != null;
-  }
+    /**
+     * Unsubscribes from all Observables managed by this group. Also clears any references to existing
+     * {@link Observer} objects in order to avoid leaks. This does not disconnect from the upstream
+     * Observable, so it can be resumed upon calling {@link #observable(String)} if needed.
+     */
+    public void unsubscribe() {
+        for (ManagedObservable<?> managedObservable : groupMap.values()) {
+            managedObservable.unsubscribe();
+        }
+    }
 
-  /** Returns whether this group has been already destroyed or not. */
-  public boolean isDestroyed() {
-    return destroyed;
-  }
+    /**
+     * Returns an existing {@link Observable} for the provided {@code tag}. Does not change the
+     * locked status of this {@link ObservableGroup}. If it is unlocked, and the Observable has
+     * already emitted events, they will be immediately delivered. If it is locked then no events
+     * will be delivered until it is unlocked.
+     */
+    public <T> Observable<T> observable(String tag) {
+        checkNotDestroyed();
+        //noinspection unchecked
+        ManagedObservable<T> managedObservable = (ManagedObservable<T>) groupMap.get(tag);
+        Observable<T> observable = managedObservable.observable();
+        return observable.compose(new GroupResubscriptionTransformer<>(this, managedObservable));
+    }
 
-  private void checkNotDestroyed() {
-    Preconditions.checkState(!destroyed, "Group is already destroyed! id=" + groupId);
-  }
+    /**
+     * @return a {@link RequestSubscription} with which the {@link Observer} can unsubscribe
+     * from or cancel before the {@link Observable} has completed. If no {@link Observable} is found
+     * for the provided {@code tag}, {@code null} is returned instead.
+     */
+    public RequestSubscription subscription(String tag) {
+        return groupMap.get(tag);
+    }
 
-  @Override public String toString() {
-    return "ObservableGroup{" + "groupMap=" + groupMap + ", groupId=" + groupId + ", locked="
-        + locked + ", destroyed=" + destroyed + '}';
-  }
+    <T> void resubscribe(ManagedObservable<T> managedObservable, Observable<T> observable,
+                         Subscriber<? super T> subscriber) {
+        managedObservable.resubscribe(observable, subscriber);
+    }
+
+    /**
+     * Removes the supplied {@link Observable} from this group and cancels it subscription. No more
+     * events will be delivered to its subscriber. If no Observable is found for the provided tag,
+     * nothing happens.
+     */
+    public void cancelAndRemove(String tag) {
+        cancelAndRemove(groupMap.get(tag));
+    }
+
+    /**
+     * Removes the supplied {@link Observable} from this group and cancels it subscription. No more
+     * events will be delivered to its subscriber.
+     */
+    private void cancelAndRemove(ManagedObservable<?> managedObservable) {
+        if (managedObservable != null) {
+            managedObservable.cancel();
+            groupMap.remove(managedObservable.tag());
+        }
+    }
+
+    /**
+     * Returns whether an {@link Observable} exists for the provided {@code tag}
+     */
+    public boolean hasObservable(String tag) {
+        ManagedObservable<?> managedObservable = groupMap.get(tag);
+        return managedObservable != null;
+    }
+
+    /**
+     * Returns whether this group has been already destroyed or not.
+     */
+    public boolean isDestroyed() {
+        return destroyed;
+    }
+
+    private void checkNotDestroyed() {
+        Preconditions.checkState(!destroyed, "Group is already destroyed! id=" + groupId);
+    }
+
+    @Override
+    public String toString() {
+        return "ObservableGroup{" + "groupMap=" + groupMap + ", groupId=" + groupId + ", locked="
+                + locked + ", destroyed=" + destroyed + '}';
+    }
 }
