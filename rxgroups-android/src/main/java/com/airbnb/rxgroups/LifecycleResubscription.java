@@ -26,149 +26,161 @@ import javax.annotation.Nullable;
 
 import io.reactivex.Observable;
 import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
 
 class LifecycleResubscription {
-  /**
-   * Returns all {@link ObserverInfo} fields on the target (eg fragment, activity, view) that are
-   * marked with {@link AutoResubscribe}. Work is done on a worker thread and the results are
-   * delivered on the main thread
-   */
-  Observable<ObserverInfo> observers(final Object target) {
-    return Observable.just(target)
-        .observeOn(Schedulers.io())
-        .flatMap(new Func1<Object, Observable<Field>>() {
-          @Override public Observable<Field> call(Object o) {
-            return fields(o);
-          }
-        })
-        .filter(new Func1<Field, Boolean>() {
-          @Override public Boolean call(Field field) {
-            return field.isAnnotationPresent(AutoResubscribe.class);
-          }
-        })
-        .flatMap(new Func1<Field, Observable<ObserverInfo>>() {
-          @Override public Observable<ObserverInfo> call(Field field) {
-            return observerInfoList(target, field);
-          }
-        })
-        .observeOn(AndroidSchedulers.mainThread());
-  }
-
-  private Observable<Field> fields(Object target) {
-    List<Field> list = new ArrayList<>();
-    Class<?> classToCheck = target.getClass();
-
-    // Get all fields on the target object, including inherited fields
-    while (shouldCheckClass(classToCheck)) {
-      //noinspection OverlyBroadCatchBlock
-      try {
-        list.addAll(Arrays.asList(classToCheck.getDeclaredFields()));
-      } catch (Throwable ignored) {
-        // ClassLoader.loadClass() can throw ClassNotFoundException when a Class field type belongs
-        // to an Android API level newer than the current one. That is usually fine, but for some
-        // reason getDeclaredFields() tries to load that class and it fails.
-      }
-      classToCheck = classToCheck.getSuperclass();
+    /**
+     * Returns all {@link ObserverInfo} fields on the target (eg fragment, activity, view) that are
+     * marked with {@link AutoResubscribe}. Work is done on a worker thread and the results are
+     * delivered on the main thread
+     */
+    Observable<ObserverInfo> observers(final Object target) {
+        return Observable.just(target)
+                .observeOn(Schedulers.io())
+                .flatMap(new Function<Object, Observable<Field>>() {
+                    @Override
+                    public Observable<Field> apply(Object o) {
+                        return fields(o);
+                    }
+                })
+                .filter(new Predicate<Field>() {
+                    @Override
+                    public boolean test(@NonNull Field field) throws Exception {
+                        return field.isAnnotationPresent(AutoResubscribe.class);
+                    }
+                })
+                .flatMap(new Function<Field, Observable<ObserverInfo>>() {
+                    @Override
+                    public Observable<ObserverInfo> apply(Field field) {
+                        return observerInfoList(target, field);
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
-    return Observable.from(list);
-  }
+    private Observable<Field> fields(Object target) {
+        List<Field> list = new ArrayList<>();
+        Class<?> classToCheck = target.getClass();
 
-  private boolean shouldCheckClass(@Nullable Class<?> clazz) {
-    if (clazz == null) {
-      return false;
+        // Get all fields on the target object, including inherited fields
+        while (shouldCheckClass(classToCheck)) {
+            //noinspection OverlyBroadCatchBlock
+            try {
+                list.addAll(Arrays.asList(classToCheck.getDeclaredFields()));
+            } catch (Throwable ignored) {
+                // ClassLoader.loadClass() can throw ClassNotFoundException when a Class field type belongs
+                // to an Android API level newer than the current one. That is usually fine, but for some
+                // reason getDeclaredFields() tries to load that class and it fails.
+            }
+            classToCheck = classToCheck.getSuperclass();
+        }
+
+        return Observable.fromIterable(list);
     }
 
-    String qualifiedName = clazz.getName();
-    return !qualifiedName.startsWith("android.") && !qualifiedName.startsWith("java.");
-  }
+    private boolean shouldCheckClass(@Nullable Class<?> clazz) {
+        if (clazz == null) {
+            return false;
+        }
 
-  private Observable<ObserverInfo> observerInfoList(final Object target, Field field) {
-    final Observer<?> observer;
-    try {
-      observer = (Observer<?>) field.get(target);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(
-          String.format("Error accessing observer %s. Make sure it's public.", field), e);
+        String qualifiedName = clazz.getName();
+        return !qualifiedName.startsWith("android.") && !qualifiedName.startsWith("java.");
     }
 
-    return Observable.just(field).flatMap(new Func1<Field, Observable<ObserverInfo>>() {
-      @Override public Observable<ObserverInfo> call(Field field) {
-        Object tag;
-        //noinspection TryWithIdenticalCatches
+    private Observable<ObserverInfo> observerInfoList(final Object target, Field field) {
+        final Observer<?> observer;
         try {
-          Class<?> fieldClass = observer.getClass();
-          Method tagMethod = fieldClass.getMethod("resubscriptionTag");
-          tag = tagMethod.invoke(observer);
-        } catch (NoSuchMethodException e) {
-          throw new RuntimeException("Please define a method named 'resubscriptionTag()'", e);
-        } catch (InvocationTargetException e) {
-          throw new RuntimeException("Exception thrown from 'resubscriptionTag()'", e);
+            observer = (Observer<?>) field.get(target);
         } catch (IllegalAccessException e) {
-          throw new RuntimeException(
-              "Method 'resubscriptionTag()' is not accessible. Make sure it's public.", e);
+            throw new RuntimeException(
+                    String.format("Error accessing observer %s. Make sure it's public.", field), e);
         }
 
-        Class<?> rawParameterType = Utils.getRawType(tag.getClass());
-        Func1<Object, ObserverInfo> collectionMapper = new Func1<Object, ObserverInfo>() {
-          @Override public ObserverInfo call(Object s) {
-            return new ObserverInfo(s.toString(), observer);
-          }
-        };
-        //noinspection ConstantConditions
-        if (Iterable.class.isAssignableFrom(rawParameterType)) {
-          return Observable.from((Iterable<?>) tag).map(collectionMapper);
+        return Observable.just(field).flatMap(new Function<Field, Observable<ObserverInfo>>() {
+            @Override
+            public Observable<ObserverInfo> apply(Field field) {
+                Object tag;
+                //noinspection TryWithIdenticalCatches
+                try {
+                    Class<?> fieldClass = observer.getClass();
+                    Method tagMethod = fieldClass.getMethod("resubscriptionTag");
+                    tag = tagMethod.invoke(observer);
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException("Please define a method named 'resubscriptionTag()'", e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException("Exception thrown from 'resubscriptionTag()'", e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(
+                            "Method 'resubscriptionTag()' is not accessible. Make sure it's public.", e);
+                }
+
+                Class<?> rawParameterType = Utils.getRawType(tag.getClass());
+                Function<Object, ObserverInfo> collectionMapper = new Function<Object, ObserverInfo>() {
+                    @Override
+                    public ObserverInfo apply(Object s) {
+                        return new ObserverInfo(s.toString(), observer);
+                    }
+                };
+                //noinspection ConstantConditions
+                if (Iterable.class.isAssignableFrom(rawParameterType)) {
+                    return Observable.fromIterable((Iterable<?>) tag).map(collectionMapper);
+                }
+                if (rawParameterType.isArray()) {
+                    return Observable.fromArray(Utils.boxIfPrimitiveArray(tag)).map(collectionMapper);
+                }
+                return Observable.just(new ObserverInfo(tag.toString(), observer));
+            }
+        });
+    }
+
+    /**
+     * Helper class to match an Observer to the Observable type it can be subscribed to.
+     */
+    static class ObserverInfo {
+        final String tag;
+        final Observer<?> observer;
+
+        ObserverInfo(String tag, Observer<?> observer) {
+            this.tag = tag;
+            this.observer = observer;
         }
-        if (rawParameterType.isArray()) {
-          return Observable.from(Utils.boxIfPrimitiveArray(tag)).map(collectionMapper);
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            ObserverInfo that = (ObserverInfo) o;
+
+            //noinspection SimplifiableIfStatement
+            if (!tag.equals(that.tag)) {
+                return false;
+            }
+            return observer.equals(that.observer);
         }
-        return Observable.just(new ObserverInfo(tag.toString(), observer));
-      }
-    });
-  }
 
-  /** Helper class to match an Observer to the Observable type it can be subscribed to. */
-  static class ObserverInfo {
-    final String tag;
-    final Observer<?> observer;
+        @Override
+        public int hashCode() {
+            int result = tag.hashCode();
+            result = 31 * result + observer.hashCode();
+            return result;
+        }
 
-    ObserverInfo(String tag, Observer<?> observer) {
-      this.tag = tag;
-      this.observer = observer;
+        @Override
+        public String toString() {
+            return "ObserverInfo{" +
+                    "tag='" + tag + '\'' +
+                    ", observer=" + observer +
+                    '}';
+        }
     }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-
-      ObserverInfo that = (ObserverInfo) o;
-
-      //noinspection SimplifiableIfStatement
-      if (!tag.equals(that.tag)) {
-        return false;
-      }
-      return observer.equals(that.observer);
-    }
-
-    @Override
-    public int hashCode() {
-      int result = tag.hashCode();
-      result = 31 * result + observer.hashCode();
-      return result;
-    }
-
-    @Override public String toString() {
-      return "ObserverInfo{" +
-          "tag='" + tag + '\'' +
-          ", observer=" + observer +
-          '}';
-    }
-  }
 }
