@@ -57,15 +57,26 @@ class ManagedObservable<T> implements RequestSubscription {
     }
 
     @Override
-    public void unsubscribe() {
+    public void dispose() {
         proxy.unsubscribe();
         observer = null;
     }
 
     @Override
-    public boolean isUnsubscribed() {
+    public boolean isDisposed() {
         return proxy.isUnsubscribed();
     }
+
+//    @Override
+//    public void unsubscribe() {
+//        proxy.unsubscribe();
+//        observer = null;
+//    }
+
+//    @Override
+//    public boolean isUnsubscribed() {
+//        return proxy.isUnsubscribed();
+//    }
 
     void unlock() {
         locked = false;
@@ -79,7 +90,7 @@ class ManagedObservable<T> implements RequestSubscription {
         return proxy.observable();
     }
 
-    void resubscribe(Observable<T> observable, Observer<? super T> observer) {
+    void resubscribe(Observable<T> observable, ResourceObserver<? super T> observer) {
         this.observable = observable;
         this.observer = Preconditions.checkNotNull(observer);
 
@@ -98,4 +109,5 @@ class ManagedObservable<T> implements RequestSubscription {
                 + "tag='" + tag + '\''
                 + '}';
     }
+
 }

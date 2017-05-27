@@ -19,7 +19,9 @@ package com.airbnb.rxgroups;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-public interface RequestSubscription extends Subscription {
+import io.reactivex.disposables.Disposable;
+
+public interface RequestSubscription extends Disposable {
   /**
    * Indicates whether this {@code RequestSubscription} is currently cancelled, that is, whether the
    * underlying HTTP request associated to it has been cancelled.
