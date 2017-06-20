@@ -68,9 +68,9 @@ final class SubscriptionProxy<T> {
         return subscribe(proxy, observer);
     }
 
-    Disposable subscribe(Observable<T> observable, ResourceObserver<? super T> observer) {
+    Disposable subscribe(Observable<T> observable, ResourceObserver<? super T> resourceObserver) {
         unsubscribe();
-        disposable = observable.subscribeWith(observer);
+        disposable = observable.subscribeWith(resourceObserver);
         disposableList.add(disposable);
         return disposable;
     }

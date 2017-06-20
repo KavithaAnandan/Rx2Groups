@@ -164,7 +164,7 @@ public class GroupLifecycleManager {
      * unlocked. Any previously subscribed Observers will be unsubscribed before the new one.
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void resubscribe(String tag, Observer<?> observer) {
+    public void resubscribe(String tag, ResourceObserver<?> observer) {
         Observable observable = group.observable(tag);
         ManagedObservable managedObservable = (ManagedObservable) group.subscription(tag);
         observable.compose(new GroupResubscriptionTransformer<>(group, managedObservable, observer));

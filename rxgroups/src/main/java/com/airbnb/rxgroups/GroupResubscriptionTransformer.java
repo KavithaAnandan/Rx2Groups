@@ -23,6 +23,7 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
+import io.reactivex.Observer;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.observers.ResourceObserver;
 
@@ -33,10 +34,10 @@ class GroupResubscriptionTransformer<T> implements ObservableTransformer<T, T> {
 
 
     GroupResubscriptionTransformer(
-            ObservableGroup group, ManagedObservable<T> managedObservable, ResourceObserver<T> resourceObserver) {
+            ObservableGroup group, ManagedObservable<T> managedObservable, ResourceObserver<T> observer) {
         this.group = group;
         this.managedObservable = managedObservable;
-        this.resourceObserver = resourceObserver;
+        this.resourceObserver = observer;
     }
 
     @Override
