@@ -24,27 +24,31 @@ import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.observers.ResourceObserver;
 
 class GroupResubscriptionTransformer<T> implements ObservableTransformer<T, T> {
-  private final ObservableGroup group;
-  private final ManagedObservable<T> managedObservable;
+    private final ObservableGroup group;
+    private final ManagedObservable<T> managedObservable;
+    private final ResourceObserver<T> resourceObserver;
 
 
-  GroupResubscriptionTransformer(
-      ObservableGroup group, ManagedObservable<T> managedObservable) {
-    this.group = group;
-    this.managedObservable = managedObservable;
-  }
+    GroupResubscriptionTransformer(
+            ObservableGroup group, ManagedObservable<T> managedObservable, ResourceObserver<T> resourceObserver) {
+        this.group = group;
+        this.managedObservable = managedObservable;
+        this.resourceObserver = resourceObserver;
+    }
 
-  @Override
-  public ObservableSource<T> apply(@NonNull final Observable<T> observable) {
-    return Observable.<T>create(new ObservableOnSubscribe<T>() {
-      @Override
-      public void subscribe(@NonNull ObservableEmitter<T> e) throws Exception {
-        group.resubscribe(managedObservable, observable, subscriber);
+    @Override
+    public ObservableSource<T> apply(@NonNull final Observable<T> observable) {
+        return Observable.<T>create(new ObservableOnSubscribe<T>() {
+            @Override
+            public void subscribe(@NonNull ObservableEmitter<T> e) throws Exception {
+                group.resubscribe(managedObservable, observable, resourceObserver);
 
-      }
-    });
+            }
+        });
+        // changed here
 
 
 //    return Observable.<T>create(new Observable.OnSubscribe<T>() {
@@ -52,5 +56,5 @@ class GroupResubscriptionTransformer<T> implements ObservableTransformer<T, T> {
 //        group.resubscribe(managedObservable, observable, subscriber);
 //      }
 //    });
-  }
+    }
 }

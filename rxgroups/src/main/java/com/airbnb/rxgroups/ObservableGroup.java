@@ -149,8 +149,8 @@ public class ObservableGroup {
         checkNotDestroyed();
         //noinspection unchecked
         ManagedObservable<T> managedObservable = (ManagedObservable<T>) groupMap.get(tag);
-        Observable<T> observable = managedObservable.observable();
-        return observable.compose(new GroupResubscriptionTransformer<>(this, managedObservable));
+        return managedObservable.observable();
+        // changed here
     }
 
     /**
@@ -163,8 +163,8 @@ public class ObservableGroup {
     }
 
     <T> void resubscribe(ManagedObservable<T> managedObservable, Observable<T> observable,
-                         Subscriber<? super T> subscriber) {
-        managedObservable.resubscribe(observable, subscriber);
+                         ResourceObserver<? super T> observer) {
+        managedObservable.resubscribe(observable, observer);
     }
 
     /**

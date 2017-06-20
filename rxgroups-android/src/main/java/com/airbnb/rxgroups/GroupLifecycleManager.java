@@ -35,6 +35,7 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Predicate;
+import io.reactivex.observers.ResourceObserver;
 
 
 /**
@@ -165,6 +166,8 @@ public class GroupLifecycleManager {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void resubscribe(String tag, Observer<?> observer) {
         Observable observable = group.observable(tag);
+        ManagedObservable managedObservable = (ManagedObservable) group.subscription(tag);
+        observable.compose(new GroupResubscriptionTransformer<>(group, managedObservable, observer));
         observable.subscribe(observer);
     }
 
