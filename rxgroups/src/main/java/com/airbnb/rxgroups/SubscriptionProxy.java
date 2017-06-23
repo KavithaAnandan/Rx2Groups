@@ -16,8 +16,6 @@
 package com.airbnb.rxgroups;
 
 
-import org.reactivestreams.Subscription;
-
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.disposables.CompositeDisposable;
@@ -37,7 +35,7 @@ import io.reactivex.subjects.ReplaySubject;
  */
 final class SubscriptionProxy<T> {
     private final Observable<T> proxy;
-    private final Subscription upstreamSubscription;
+    //private final Subscription upstreamSubscription;
     //private final CompositeSubscription subscriptionList;
     private final CompositeDisposable disposableList;
     //private Subscription subscription;
@@ -46,10 +44,12 @@ final class SubscriptionProxy<T> {
 
     private SubscriptionProxy(Observable<T> upstreamObservable, Action onTerminate) {
         ReplaySubject<T> replaySubject = ReplaySubject.create();
-        upstreamSubscription = upstreamObservable.subscribe(replaySubject);
+        //upstreamSubscription = upstreamObservable.subscribe(replaySubject);
+        upstreamObservable.subscribe(replaySubject);
         proxy = replaySubject.doOnTerminate(onTerminate);
         disposableList = new CompositeDisposable();
     }
+
 
     static <T> SubscriptionProxy<T> create(Observable<T> observable, Action onTerminate) {
         return new SubscriptionProxy<>(observable, onTerminate);
@@ -89,8 +89,11 @@ final class SubscriptionProxy<T> {
         return disposable != null && disposable.isDisposed();
     }
 
+    //    boolean isCancelled() {
+//        return isUnsubscribed() && upstreamSubscription.isUnsubscribed();
+//    }
     boolean isCancelled() {
-        return isUnsubscribed() && upstreamSubscription.isUnsubscribed();
+        return isUnsubscribed();
     }
 
     Observable<T> observable() {

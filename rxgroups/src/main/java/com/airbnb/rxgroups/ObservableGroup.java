@@ -135,7 +135,7 @@ public class ObservableGroup {
      */
     public void unsubscribe() {
         for (ManagedObservable<?> managedObservable : groupMap.values()) {
-            managedObservable.unsubscribe();
+            managedObservable.dispose();
         }
     }
 
