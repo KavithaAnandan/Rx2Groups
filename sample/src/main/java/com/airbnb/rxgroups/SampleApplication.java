@@ -19,7 +19,8 @@ import android.app.Application;
 
 import java.util.concurrent.TimeUnit;
 
-import rx.Observable;
+import io.reactivex.Observable;
+
 
 public class SampleApplication extends Application {
   private final ObservableManager observableManager = new ObservableManager();

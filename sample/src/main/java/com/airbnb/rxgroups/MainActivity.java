@@ -26,8 +26,9 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+
 
 public class MainActivity extends AppCompatActivity {
   private static final String IS_RUNNING = "IS_RUNNING";
@@ -46,19 +47,24 @@ public class MainActivity extends AppCompatActivity {
           return OBSERVABLE_TAG;
         }
 
-        @Override public void onCompleted() {
-          Log.d(TAG, "onCompleted()");
+        @Override
+        public void onNext(Object o) {
+          Log.d(TAG, "Current Thread=" + Thread.currentThread().getName() + ", onNext()=" + o.toString());
+          output.setText(output.getText() + " " + o.toString());
         }
 
         @Override public void onError(Throwable e) {
           Log.e(TAG, "onError()", e);
         }
 
-        @Override public void onNext(Long l) {
-          Log.d(TAG, "Current Thread=" + Thread.currentThread().getName() + ", onNext()=" + l);
-          output.setText(output.getText() + " " + l);
+        @Override
+        public void onComplete() {
+          Log.d(TAG, "onCompleted()");
         }
+
       };
+
+
   private Drawable alarmOffDrawable;
   private Drawable alarmDrawable;
   private Drawable lockDrawable;
@@ -125,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
       startStop.setImageDrawable(alarmOffDrawable);
       timerObservable
           .observeOn(AndroidSchedulers.mainThread())
-          .onBackpressureBuffer()
           .compose(groupLifecycleManager.<Long>transform(OBSERVABLE_TAG))
           .subscribe(observer);
     } else {
