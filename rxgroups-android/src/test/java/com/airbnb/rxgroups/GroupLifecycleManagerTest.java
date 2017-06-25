@@ -13,13 +13,12 @@ import org.robolectric.annotation.Config;
 
 import java.util.concurrent.TimeUnit;
 
-import rx.Observable;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
-import rx.subjects.TestSubject;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.schedulers.TestScheduler;
+import io.reactivex.subscribers.TestSubscriber;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;

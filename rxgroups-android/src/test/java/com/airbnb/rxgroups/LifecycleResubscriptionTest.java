@@ -23,8 +23,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import rx.Observer;
-import rx.observers.TestSubscriber;
+
+import io.reactivex.Observer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -113,7 +113,8 @@ public class LifecycleResubscriptionTest extends BaseTest {
   }
 
   static class SimpleString {
-    @AutoResubscribe Observer<String> observer1 = new TestSubscriber<String>() {
+    @AutoResubscribe
+    Observer<String> observer1 = new TestSubscriber<String>() {
       public String resubscriptionTag() {
         return "Object";
       }
