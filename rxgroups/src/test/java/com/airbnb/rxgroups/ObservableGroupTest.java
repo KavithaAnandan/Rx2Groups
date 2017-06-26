@@ -19,10 +19,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 
 import io.reactivex.Observable;
 import io.reactivex.Observer;
+import io.reactivex.Scheduler;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
+import io.reactivex.plugins.RxJavaPlugins;
+import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 
 import static junit.framework.TestCase.fail;
@@ -33,8 +39,14 @@ public class ObservableGroupTest {
 
     @Before
     public void setUp() throws IOException {
-        System.setProperty("rxjava.plugin.RxJavaSchedulersHook.implementation",
-                TestRxJavaSchedulerHook.class.getName());
+        RxJavaPlugins.reset();
+        RxJavaPlugins.setInitIoSchedulerHandler(new Function<Callable<Scheduler>, Scheduler>() {
+            @Override
+            public Scheduler apply(@NonNull Callable<Scheduler> schedulerCallable) throws Exception {
+                return Schedulers.trampoline();
+            }
+        });
+
     }
 
     @Test

@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
-import io.reactivex.Observer;
 import io.reactivex.observers.ResourceObserver;
 
 import static org.assertj.core.api.Assertions.assertThat;
