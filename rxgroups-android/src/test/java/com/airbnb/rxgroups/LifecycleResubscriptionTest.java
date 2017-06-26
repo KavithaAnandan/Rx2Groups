@@ -25,149 +25,163 @@ import java.util.concurrent.TimeUnit;
 
 
 import io.reactivex.Observer;
+import io.reactivex.observers.ResourceObserver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class LifecycleResubscriptionTest extends BaseTest {
-  private final LifecycleResubscription resubscription = new LifecycleResubscription();
-  private final TestSubscriber<ObserverInfo> testSubscriber = new TestSubscriber<>();
+    private final LifecycleResubscription resubscription = new LifecycleResubscription();
+    private final TestObserver<ObserverInfo> testObserver = new TestObserver<>();
 
-  @Test public void simpleString() {
-    SimpleString simpleString = new SimpleString();
-    resubscription.observers(simpleString).subscribe(testSubscriber);
+    @Test
+    public void simpleString() {
+        SimpleString simpleString = new SimpleString();
+        resubscription.observers(simpleString).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertValueCount(2);
-    testSubscriber.assertCompleted();
-    testSubscriber.assertNoErrors();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertValueCount(2);
+        testObserver.assertCompleted();
+        testObserver.assertNoErrors();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(
-        new ObserverInfo("Object", simpleString.observer1),
-        new ObserverInfo("String", simpleString.observer2));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(
+                new ObserverInfo("Object", simpleString.observer1),
+                new ObserverInfo("String", simpleString.observer2));
+    }
 
-  @Test public void superclass() {
-    SubSimpleString subFoo = new SubSimpleString();
-    resubscription.observers(subFoo).subscribe(testSubscriber);
+    @Test
+    public void superclass() {
+        SubSimpleString subFoo = new SubSimpleString();
+        resubscription.observers(subFoo).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertCompleted();
-    testSubscriber.assertNoErrors();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertCompleted();
+        testObserver.assertNoErrors();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(
-        new ObserverInfo("Object", subFoo.observer1),
-        new ObserverInfo("String", subFoo.observer2),
-        new ObserverInfo("Integer", subFoo.foo),
-        new ObserverInfo("Long", subFoo.bar));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(
+                new ObserverInfo("Object", subFoo.observer1),
+                new ObserverInfo("String", subFoo.observer2),
+                new ObserverInfo("Integer", subFoo.foo),
+                new ObserverInfo("Long", subFoo.bar));
+    }
 
-  @Test public void stringArrayTags() {
-    StringArray stringArray = new StringArray();
-    resubscription.observers(stringArray).subscribe(testSubscriber);
+    @Test
+    public void stringArrayTags() {
+        StringArray stringArray = new StringArray();
+        resubscription.observers(stringArray).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertNoErrors();
-    testSubscriber.assertValueCount(2);
-    testSubscriber.assertCompleted();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertNoErrors();
+        testObserver.assertValueCount(2);
+        testObserver.assertCompleted();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(
-        new ObserverInfo("Class", stringArray.baz),
-        new ObserverInfo("Double", stringArray.baz));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(
+                new ObserverInfo("Class", stringArray.baz),
+                new ObserverInfo("Double", stringArray.baz));
+    }
 
-  @Test public void integerTag() {
-    Int anInt = new Int();
-    resubscription.observers(anInt).subscribe(testSubscriber);
+    @Test
+    public void integerTag() {
+        Int anInt = new Int();
+        resubscription.observers(anInt).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertNoErrors();
-    testSubscriber.assertCompleted();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertNoErrors();
+        testObserver.assertCompleted();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(new ObserverInfo("2", anInt.lol));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(new ObserverInfo("2", anInt.lol));
+    }
 
-  @Test public void iterable() {
-    ObjectList objectList = new ObjectList();
-    resubscription.observers(objectList).subscribe(testSubscriber);
+    @Test
+    public void iterable() {
+        ObjectList objectList = new ObjectList();
+        resubscription.observers(objectList).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertNoErrors();
-    testSubscriber.assertCompleted();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertNoErrors();
+        testObserver.assertCompleted();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(
-        new ObserverInfo("1", objectList.fooBar),
-        new ObserverInfo("foo", objectList.fooBar));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(
+                new ObserverInfo("1", objectList.fooBar),
+                new ObserverInfo("foo", objectList.fooBar));
+    }
 
-  @Test public void array() {
-    DoubleArray doubleArray = new DoubleArray();
-    resubscription.observers(doubleArray).subscribe(testSubscriber);
+    @Test
+    public void array() {
+        DoubleArray doubleArray = new DoubleArray();
+        resubscription.observers(doubleArray).subscribe(testObserver);
 
-    testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-    testSubscriber.assertNoErrors();
-    testSubscriber.assertCompleted();
+        testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testObserver.assertNoErrors();
+        testObserver.assertCompleted();
 
-    assertThat(testSubscriber.getOnNextEvents()).containsOnly(
-        new ObserverInfo("1000.0", doubleArray.fooBar),
-        new ObserverInfo("2.0", doubleArray.fooBar));
-  }
+        assertThat(testObserver.getOnNextEvents()).containsOnly(
+                new ObserverInfo("1000.0", doubleArray.fooBar),
+                new ObserverInfo("2.0", doubleArray.fooBar));
+    }
 
-  static class SimpleString {
-    @AutoResubscribe
-    Observer<String> observer1 = new TestSubscriber<String>() {
-      public String resubscriptionTag() {
-        return "Object";
-      }
-    };
-    @AutoResubscribe Observer<String> observer2 = new TestSubscriber<String>() {
-      public String resubscriptionTag() {
-        return "String";
-      }
-    };
-  }
+    static class SimpleString {
+        @AutoResubscribe
+        ResourceObserver<String> observer1 = new TestObserver<String>() {
+            public String resubscriptionTag() {
+                return "Object";
+            }
+        };
+        @AutoResubscribe
+        ResourceObserver<String> observer2 = new TestObserver<String>() {
+            public String resubscriptionTag() {
+                return "String";
+            }
+        };
+    }
 
-  private static class SubSimpleString extends SimpleString {
-    @AutoResubscribe Observer<String> foo = new TestSubscriber<String>() {
-      public String resubscriptionTag() {
-        return "Integer";
-      }
-    };
-    @AutoResubscribe Observer<String> bar = new TestSubscriber<String>() {
-      public String resubscriptionTag() {
-        return "Long";
-      }
-    };
-  }
+    private static class SubSimpleString extends SimpleString {
+        @AutoResubscribe
+        ResourceObserver<String> foo = new TestObserver<String>() {
+            public String resubscriptionTag() {
+                return "Integer";
+            }
+        };
+        @AutoResubscribe
+        ResourceObserver<String> bar = new TestObserver<String>() {
+            public String resubscriptionTag() {
+                return "Long";
+            }
+        };
+    }
 
-  private static class StringArray {
-    @AutoResubscribe Observer<String> baz = new TestSubscriber<String>() {
-      public String[] resubscriptionTag() {
-        return new String[] {"Class", "Double" };
-      }
-    };
-  }
+    private static class StringArray {
+        @AutoResubscribe
+        ResourceObserver<String> baz = new TestObserver<String>() {
+            public String[] resubscriptionTag() {
+                return new String[]{"Class", "Double"};
+            }
+        };
+    }
 
-  private static class Int {
-    @AutoResubscribe Observer<String> lol = new TestSubscriber<String>() {
-      public int resubscriptionTag() {
-        return 2;
-      }
-    };
-  }
+    private static class Int {
+        @AutoResubscribe
+        ResourceObserver<String> lol = new TestObserver<String>() {
+            public int resubscriptionTag() {
+                return 2;
+            }
+        };
+    }
 
-  private static class ObjectList {
-    @AutoResubscribe Observer<String> fooBar = new TestSubscriber<String>() {
-      public List<Object> resubscriptionTag() {
-        return Arrays.<Object>asList(1, "foo");
-      }
-    };
-  }
+    private static class ObjectList {
+        @AutoResubscribe
+        ResourceObserver<String> fooBar = new TestObserver<String>() {
+            public List<Object> resubscriptionTag() {
+                return Arrays.<Object>asList(1, "foo");
+            }
+        };
+    }
 
-  private static class DoubleArray {
-    @AutoResubscribe Observer<String> fooBar = new TestSubscriber<String>() {
-      public double[] resubscriptionTag() {
-        return new double[] { 1000D, 2D };
-      }
-    };
-  }
+    private static class DoubleArray {
+        @AutoResubscribe
+        ResourceObserver<String> fooBar = new TestObserver<String>() {
+            public double[] resubscriptionTag() {
+                return new double[]{1000D, 2D};
+            }
+        };
+    }
 }

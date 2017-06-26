@@ -196,6 +196,19 @@ class TestObserver<T> extends ResourceObserver<T> {
         assertReceivedOnNext(Collections.singletonList(value));
     }
 
+    /**
+     * Asserts that the given number of onNext events are received.
+     *
+     * @param count the expected number of onNext events
+     * @throws AssertionError if there were more or fewer onNext events than specified by {@code count}
+     */
+    void assertValueCount(int count) {
+        int s = getOnNextEvents().size();
+        if (s != count) {
+            assertionError("Number of onNext events differ; expected: " + count + ", actual: " + s);
+        }
+    }
+
     void assertNoValues() {
         int s = getOnNextEvents().size();
         if (s != 0) {
