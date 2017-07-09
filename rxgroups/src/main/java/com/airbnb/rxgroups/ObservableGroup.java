@@ -24,7 +24,6 @@ import io.reactivex.Observable;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.Observer;
 import io.reactivex.functions.Action;
-import io.reactivex.observers.ResourceObserver;
 
 
 /**
@@ -57,7 +56,7 @@ public class ObservableGroup {
      * {@link Observable} with the same tag is already added, the previous one will be canceled and
      * removed before adding and subscribing to the new one.
      */
-    <T> void add(final String tag, Observable<T> observable, ResourceObserver<? super T> observer) {
+    <T> void add(final String tag, Observable<T> observable, Observer<? super T> observer) {
         checkNotDestroyed();
 
         ManagedObservable<?> previousObservable = groupMap.get(tag);
@@ -149,8 +148,8 @@ public class ObservableGroup {
         checkNotDestroyed();
         //noinspection unchecked
         ManagedObservable<T> managedObservable = (ManagedObservable<T>) groupMap.get(tag);
-        return managedObservable.observable();
-        // changed here
+        Observable<T> observable = managedObservable.observable();
+        return observable.compose(new GroupResubscriptionTransformer<>(this, managedObservable));
     }
 
     /**
@@ -163,7 +162,7 @@ public class ObservableGroup {
     }
 
     <T> void resubscribe(ManagedObservable<T> managedObservable, Observable<T> observable,
-                         ResourceObserver<? super T> observer) {
+                         Observer<? super T> observer) {
         managedObservable.resubscribe(observable, observer);
     }
 

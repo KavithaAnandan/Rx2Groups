@@ -17,11 +17,7 @@ package com.airbnb.rxgroups;
 
 
 
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Emitter;
-import io.reactivex.Flowable;
-import io.reactivex.FlowableEmitter;
-import io.reactivex.FlowableOnSubscribe;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -30,8 +26,7 @@ import io.reactivex.ObservableTransformer;
 import io.reactivex.Observer;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Action;
-import io.reactivex.observers.ResourceObserver;
+
 
 /**
  * Transforms an existing {@link Observable} by returning a new {@link Observable} that is
@@ -53,7 +48,12 @@ class GroupSubscriptionTransformer<T> implements ObservableTransformer<T, T> {
         return Observable.create(new ObservableOnSubscribe<T>() {
             @Override
             public void subscribe(@NonNull final ObservableEmitter<T> emitter) throws Exception {
-                group.add(tag, observable, new ResourceObserver<T>() {
+                group.add(tag, observable, new Observer<T>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
                     @Override
                     public void onNext(@NonNull T t) {
                         emitter.onNext(t);

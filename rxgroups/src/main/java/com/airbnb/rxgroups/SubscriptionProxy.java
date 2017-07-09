@@ -16,12 +16,12 @@
 package com.airbnb.rxgroups;
 
 
+
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
-import io.reactivex.observers.ResourceObserver;
 import io.reactivex.subjects.ReplaySubject;
 
 /**
@@ -40,14 +40,15 @@ final class SubscriptionProxy<T> {
     private final CompositeDisposable disposableList;
     //private Subscription subscription;
     private Disposable disposable;
+    private boolean isUpstreamSubscriptionAlive;
 
 
     private SubscriptionProxy(Observable<T> upstreamObservable, Action onTerminate) {
         ReplaySubject<T> replaySubject = ReplaySubject.create();
-        //upstreamSubscription = upstreamObservable.subscribe(replaySubject);
         upstreamObservable.subscribe(replaySubject);
         proxy = replaySubject.doOnTerminate(onTerminate);
         disposableList = new CompositeDisposable();
+        isUpstreamSubscriptionAlive = true;
     }
 
 
@@ -64,19 +65,39 @@ final class SubscriptionProxy<T> {
         });
     }
 
-    Disposable subscribe(ResourceObserver<? super T> observer) {
-        return subscribe(proxy, observer);
+    void subscribe(Observer<? super T> observer) {
+        subscribe(proxy, observer);
     }
 
-    Disposable subscribe(Observable<T> observable, ResourceObserver<? super T> resourceObserver) {
+    void subscribe(Observable<T> observable, final Observer<? super T> observer) {
         unsubscribe();
-        disposable = observable.subscribeWith(resourceObserver);
-        disposableList.add(disposable);
-        return disposable;
+        observable.subscribe(new Observer<T>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                disposable = d;
+                disposableList.add(disposable);
+            }
+
+            @Override
+            public void onNext(T t) {
+                observer.onNext(t);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                observer.onError(e);
+            }
+
+            @Override
+            public void onComplete() {
+                observer.onComplete();
+            }
+        });
     }
 
     void cancel() {
         disposableList.dispose();
+        isUpstreamSubscriptionAlive = false;
     }
 
     void unsubscribe() {
@@ -89,12 +110,10 @@ final class SubscriptionProxy<T> {
         return disposable != null && disposable.isDisposed();
     }
 
-    //    boolean isCancelled() {
-//        return isUnsubscribed() && upstreamSubscription.isUnsubscribed();
-//    }
     boolean isCancelled() {
-        return isUnsubscribed();
+        return isUnsubscribed() && !isUpstreamSubscriptionAlive;
     }
+
 
     Observable<T> observable() {
         return proxy;

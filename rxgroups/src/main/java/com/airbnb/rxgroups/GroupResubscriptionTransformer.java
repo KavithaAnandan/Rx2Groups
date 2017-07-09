@@ -16,7 +16,6 @@
 package com.airbnb.rxgroups;
 
 
-import org.reactivestreams.Subscriber;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -25,28 +24,46 @@ import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.Observer;
 import io.reactivex.annotations.NonNull;
-import io.reactivex.observers.ResourceObserver;
+import io.reactivex.disposables.Disposable;
 
 class GroupResubscriptionTransformer<T> implements ObservableTransformer<T, T> {
     private final ObservableGroup group;
     private final ManagedObservable<T> managedObservable;
-    private final ResourceObserver<T> resourceObserver;
 
 
     GroupResubscriptionTransformer(
-            ObservableGroup group, ManagedObservable<T> managedObservable, ResourceObserver<T> observer) {
+            ObservableGroup group, ManagedObservable<T> managedObservable) {
         this.group = group;
         this.managedObservable = managedObservable;
-        this.resourceObserver = observer;
     }
 
     @Override
     public ObservableSource<T> apply(@NonNull final Observable<T> observable) {
         return Observable.<T>create(new ObservableOnSubscribe<T>() {
             @Override
-            public void subscribe(@NonNull ObservableEmitter<T> e) throws Exception {
-                group.resubscribe(managedObservable, observable, resourceObserver);
+            public void subscribe(@NonNull final ObservableEmitter<T> emitter) throws Exception {
+                group.resubscribe(managedObservable, observable, new Observer<T>() {
 
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(T t) {
+                        emitter.onNext(t);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        emitter.onError(e);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        emitter.onComplete();
+                    }
+                });
             }
         });
         // changed here

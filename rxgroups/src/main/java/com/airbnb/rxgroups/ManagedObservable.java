@@ -19,7 +19,6 @@ package com.airbnb.rxgroups;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Action;
-import io.reactivex.observers.ResourceObserver;
 
 /**
  * A wrapper for a {@link SubscriptionProxy} for use with the {@link ObservableGroup} to monitor a
@@ -30,9 +29,9 @@ class ManagedObservable<T> implements RequestSubscription {
     private final SubscriptionProxy<T> proxy;
     private boolean locked = true;
     private Observable<T> observable;
-    private ResourceObserver<? super T> observer;
+    private Observer<? super T> observer;
 
-    ManagedObservable(String tag, Observable<T> observable, ResourceObserver<? super T> observer,
+    ManagedObservable(String tag, Observable<T> observable, Observer<? super T> observer,
                       Action onTerminate) {
         this.tag = tag;
         this.observer = observer;
@@ -80,7 +79,7 @@ class ManagedObservable<T> implements RequestSubscription {
         return proxy.observable();
     }
 
-    void resubscribe(Observable<T> observable, ResourceObserver<? super T> observer) {
+    void resubscribe(Observable<T> observable, Observer<? super T> observer) {
         this.observable = observable;
         this.observer = Preconditions.checkNotNull(observer);
 

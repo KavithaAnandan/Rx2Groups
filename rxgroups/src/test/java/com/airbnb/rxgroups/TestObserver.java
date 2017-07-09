@@ -14,7 +14,7 @@ import io.reactivex.exceptions.CompositeException;
 import io.reactivex.observers.ResourceObserver;
 
 
-class TestObserver<T> extends ResourceObserver<T> {
+class TestObserver<T> implements Observer<T> {
     private final Observer<T> delegate;
     private final List<T> onNextEvents = new ArrayList<>();
     private final List<Throwable> onErrorEvents = new ArrayList<>();
@@ -69,6 +69,11 @@ class TestObserver<T> extends ResourceObserver<T> {
      */
     private List<Throwable> getOnErrorEvents() {
         return Collections.unmodifiableList(onErrorEvents);
+    }
+
+    @Override
+    public void onSubscribe(Disposable d) {
+
     }
 
     @Override

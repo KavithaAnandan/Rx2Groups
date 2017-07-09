@@ -30,7 +30,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
-import io.reactivex.observers.ResourceObserver;
 import io.reactivex.schedulers.Schedulers;
 
 
@@ -94,9 +93,9 @@ class LifecycleResubscription {
     }
 
     private Observable<ObserverInfo> observerInfoList(final Object target, Field field) {
-        final ResourceObserver<?> observer;
+        final Observer<?> observer;
         try {
-            observer = (ResourceObserver<?>) field.get(target);
+            observer = (Observer<?>) field.get(target);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(
                     String.format("Error accessing observer %s. Make sure it's public.", field), e);
@@ -144,9 +143,9 @@ class LifecycleResubscription {
      */
     static class ObserverInfo {
         final String tag;
-        final ResourceObserver<?> observer;
+        final Observer<?> observer;
 
-        ObserverInfo(String tag, ResourceObserver<?> observer) {
+        ObserverInfo(String tag, Observer<?> observer) {
             this.tag = tag;
             this.observer = observer;
         }
