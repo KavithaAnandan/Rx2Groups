@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 
 import io.reactivex.Observable;
+import io.reactivex.observers.TestObserver;
 import io.reactivex.schedulers.TestScheduler;
 import io.reactivex.subjects.PublishSubject;
 
@@ -58,7 +59,7 @@ public class GroupLifecycleManagerTest extends BaseTest {
         scheduler.triggerActions();
 
         testObserver.awaitTerminalEvent(3, TimeUnit.SECONDS);
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
         testObserver.assertValue("hello");
     }
 
@@ -78,7 +79,7 @@ public class GroupLifecycleManagerTest extends BaseTest {
         scheduler.triggerActions();
 
         testObserver.awaitTerminalEvent(3, TimeUnit.SECONDS);
-        testObserver.assertNotCompleted();
+        testObserver.assertNotComplete();
         testObserver.assertNoValues();
     }
 

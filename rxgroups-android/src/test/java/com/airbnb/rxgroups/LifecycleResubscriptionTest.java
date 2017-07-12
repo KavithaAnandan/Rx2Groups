@@ -22,9 +22,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import io.reactivex.observers.TestObserver;
 
-
-import io.reactivex.observers.ResourceObserver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,10 +38,10 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testObserver.assertValueCount(2);
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
         testObserver.assertNoErrors();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(
+        assertThat(testObserver.values()).containsOnly(
                 new ObserverInfo("Object", simpleString.observer1),
                 new ObserverInfo("String", simpleString.observer2));
     }
@@ -53,10 +52,10 @@ public class LifecycleResubscriptionTest extends BaseTest {
         resubscription.observers(subFoo).subscribe(testObserver);
 
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
         testObserver.assertNoErrors();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(
+        assertThat(testObserver.values()).containsOnly(
                 new ObserverInfo("Object", subFoo.observer1),
                 new ObserverInfo("String", subFoo.observer2),
                 new ObserverInfo("Integer", subFoo.foo),
@@ -71,9 +70,9 @@ public class LifecycleResubscriptionTest extends BaseTest {
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testObserver.assertNoErrors();
         testObserver.assertValueCount(2);
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(
+        assertThat(testObserver.values()).containsOnly(
                 new ObserverInfo("Class", stringArray.baz),
                 new ObserverInfo("Double", stringArray.baz));
     }
@@ -85,9 +84,9 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testObserver.assertNoErrors();
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(new ObserverInfo("2", anInt.lol));
+        assertThat(testObserver.values()).containsOnly(new ObserverInfo("2", anInt.lol));
     }
 
     @Test
@@ -97,9 +96,9 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testObserver.assertNoErrors();
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(
+        assertThat(testObserver.values()).containsOnly(
                 new ObserverInfo("1", objectList.fooBar),
                 new ObserverInfo("foo", objectList.fooBar));
     }
@@ -111,22 +110,22 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
         testObserver.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testObserver.assertNoErrors();
-        testObserver.assertCompleted();
+        testObserver.assertComplete();
 
-        assertThat(testObserver.getOnNextEvents()).containsOnly(
+        assertThat(testObserver.values()).containsOnly(
                 new ObserverInfo("1000.0", doubleArray.fooBar),
                 new ObserverInfo("2.0", doubleArray.fooBar));
     }
 
     static class SimpleString {
         @AutoResubscribe
-        ResourceObserver<String> observer1 = new TestObserver<String>() {
+        TestObserver<String> observer1 = new TestObserver<String>() {
             public String resubscriptionTag() {
                 return "Object";
             }
         };
         @AutoResubscribe
-        ResourceObserver<String> observer2 = new TestObserver<String>() {
+        TestObserver<String> observer2 = new TestObserver<String>() {
             public String resubscriptionTag() {
                 return "String";
             }
@@ -135,13 +134,13 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
     private static class SubSimpleString extends SimpleString {
         @AutoResubscribe
-        ResourceObserver<String> foo = new TestObserver<String>() {
+        TestObserver<String> foo = new TestObserver<String>() {
             public String resubscriptionTag() {
                 return "Integer";
             }
         };
         @AutoResubscribe
-        ResourceObserver<String> bar = new TestObserver<String>() {
+        TestObserver<String> bar = new TestObserver<String>() {
             public String resubscriptionTag() {
                 return "Long";
             }
@@ -150,7 +149,7 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
     private static class StringArray {
         @AutoResubscribe
-        ResourceObserver<String> baz = new TestObserver<String>() {
+        TestObserver<String> baz = new TestObserver<String>() {
             public String[] resubscriptionTag() {
                 return new String[]{"Class", "Double"};
             }
@@ -159,7 +158,7 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
     private static class Int {
         @AutoResubscribe
-        ResourceObserver<String> lol = new TestObserver<String>() {
+        TestObserver<String> lol = new TestObserver<String>() {
             public int resubscriptionTag() {
                 return 2;
             }
@@ -168,7 +167,7 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
     private static class ObjectList {
         @AutoResubscribe
-        ResourceObserver<String> fooBar = new TestObserver<String>() {
+        TestObserver<String> fooBar = new TestObserver<String>() {
             public List<Object> resubscriptionTag() {
                 return Arrays.<Object>asList(1, "foo");
             }
@@ -177,7 +176,7 @@ public class LifecycleResubscriptionTest extends BaseTest {
 
     private static class DoubleArray {
         @AutoResubscribe
-        ResourceObserver<String> fooBar = new TestObserver<String>() {
+        TestObserver<String> fooBar = new TestObserver<String>() {
             public double[] resubscriptionTag() {
                 return new double[]{1000D, 2D};
             }
