@@ -28,6 +28,7 @@ import android.widget.Toast;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -45,6 +46,11 @@ public class MainActivity extends AppCompatActivity {
       new ResubscriptionObserver<Long>() {
         @Override public Object resubscriptionTag() {
           return OBSERVABLE_TAG;
+        }
+
+        @Override
+        public void onSubscribe(Disposable d) {
+
         }
 
         @Override
@@ -73,10 +79,13 @@ public class MainActivity extends AppCompatActivity {
   private FloatingActionButton lockUnlock;
   private ObservableGroup observableGroup;
 
+
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+    setSupportActionBar(toolbar);
+
     startStop = (FloatingActionButton) findViewById(R.id.fab);
     lockUnlock = (FloatingActionButton) findViewById(R.id.fab_pause_resume);
     alarmOffDrawable = ContextCompat.getDrawable(this, R.drawable.ic_alarm_off_black_24dp);
@@ -84,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
     lockDrawable = ContextCompat.getDrawable(this, R.drawable.ic_lock_outline_black_24dp);
     unlockDrawable = ContextCompat.getDrawable(this, R.drawable.ic_lock_open_black_24dp);
     output = (TextView) findViewById(R.id.txt_output);
-    setSupportActionBar(toolbar);
 
     startStop.setOnClickListener(new View.OnClickListener() {
       @Override public void onClick(View v) {
