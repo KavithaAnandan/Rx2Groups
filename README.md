@@ -1,3 +1,10 @@
+This is the RxJava2 port of the [RxGroups](https://github.com/airbnb/RxGroups) project developed by AirBnb.
+The branch `rx-2.0` has the Rx2 changes. The changes have been done on  `master` branch of `RxGroups`. The
+following documentation written for `RxGroups` by AirBnb applies to `Rx2Groups` as well.  All the API and
+package names originally written  by AirBnb  remains as it is. I have  transitioned all the  RxJava
+APIs(including the unit tests) to RxJava2.
+
+
 # RxGroups
 
 [![Build Status](https://travis-ci.org/airbnb/DeepLinkDispatch.svg)](https://travis-ci.org/airbnb/RxGroups)
